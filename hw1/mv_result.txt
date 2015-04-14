@@ -1,0 +1,8 @@
+Array:
+140 
+320 
+500 
+
+FPOperation:18
+Reads:18
+Writes:3

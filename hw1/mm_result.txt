@@ -1,0 +1,8 @@
+Array:
+950 1100 
+1700 2000 
+2450 2900 
+
+FPOperation:60
+Reads:60
+Writes:6
