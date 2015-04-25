@@ -18,9 +18,13 @@ double readGridAttribute(const int noAttr, const int nPoints, const int whichPt,
 void   writeGridAttribute(const int noAttr, const int nPoints, const int whichPt, const int whichAttr, double *values, const double val);
 
 void computeBounds(const int DIM, const int nPoints, const double *knownCoords, double(*bounds)[2]);
-void computeDistances(const int DIM, const int nPoints, const double *knownCoords, const int nGrids, const double *gridCoords, double *distances);
-void computeWeights(const int nGrids, const int nPoints, double *distances, double *weightSum, const double p = 2.0);
-void computeInterpolation(const int nValues, const int nGrids, const int nPoints, const double *distances, const double *weightSum, const double *knownValues, double *gridValues);
+void computeDistances(const int DIM, const int nPoints, const double *knownCoords, 
+	const int nGrids, const double *gridCoords, double *distances);
+void computeWeights(const int nGrids, const int nPoints, double *distances, 
+	double *weightSum, const double p = 2.0);
+void computeInterpolation(const int nValues, const int nGrids, 
+	const int nPoints, const double *distances, 
+	const double *weightSum, const double *knownValues, double *gridValues);
 
 
 #endif

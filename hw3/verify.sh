@@ -1,11 +1,11 @@
 #!/bin/bash
-src="/home/course/hw03"
+src="."
 a='test1.dat test2.dat'
 for i in $a; do
 	# echo $i
 	./mainAOS.exe "$src/$i" "$i-AOS.out"
 	./mainSOA.exe "$src/$i" "$i-SOA.out"
-	$src/mainREF.exe "$src/$i" "$i-REF.out"
+	./mainREF.exe "$src/$i" "$i-REF.out"
 	a=`diff $i-AOS.out $i-REF.out`
 	b=`diff $i-SOA.out $i-REF.out`
 
