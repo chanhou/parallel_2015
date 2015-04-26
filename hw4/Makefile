@@ -23,9 +23,10 @@ libIDASOAp: libIDASOAp.cpp
 	g++ -c -fopenmp libIDASOAp.cpp
 	ar -q libIDASOAp.a libIDASOAp.o
 
-# libIDAFast: libIDAFast.cpp
-# 	g++ -c libIDAFast.cpp
-# 	ar -q libIDAFast.a libIDAFast.o
+libIDAFast: libIDAFast.cpp
+	rm libIDAFast.a
+	g++ -c -fopenmp libIDAFast.cpp
+	ar -q libIDAFast.a libIDAFast.o
 
 mainAOSp.exe: main.cpp libIDAAOSp.cpp stopWatch.o
 	g++ $(CPPFLAGS) -fopenmp main.cpp stopWatch.o -lIDAAOSp -L./ -o $@

@@ -98,12 +98,13 @@ int main(int argc, char **argv) {
 
 	// int where = 0;
 
+
 	// find bounds of known data points
 	timer.start();
 	computeBounds(DIM, nPoints, knownCoords, bounds);
 	timer.stop();
 	t1 = timer.elapsedTime();
-	cout<<"DIM "<<DIM<<" t1 "<<t1<<endl;
+	cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t1 "<<t1<<endl;
 	// for (int i = 0; i < DIM; ++i) cout << bounds[i][0] << ":" << bounds[i][1] << endl; cout << endl;
 
 	// // create grid points in unknownCoords
@@ -115,7 +116,8 @@ int main(int argc, char **argv) {
 	computeDistances(DIM, nPoints, knownCoords, nGrids, gridCoords, distances);
 	timer.stop();
 	t2 = timer.elapsedTime();
-	cout<<"DIM "<<DIM<<" t2 "<<t2<<endl;
+	// cout<<"DIM "<<DIM<<" t2 "<<t2<<endl;
+	cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t2 "<<t2<<endl;
 	// for (int i = 0; i < nPoints*nGrids; ++i) cout << distances[i] << " "; cout << endl;
 
 	// // step 4. turn the distance array into weight array, and compute the total weight
@@ -123,7 +125,8 @@ int main(int argc, char **argv) {
 	computeWeights(nGrids, nPoints, distances, weightSum);
 	timer.stop();
 	t3 = timer.elapsedTime();
-	cout<<"DIM "<<DIM<<" t3 "<<t3<<endl;
+	// cout<<"DIM "<<DIM<<" t3 "<<t3<<endl;
+	cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t3 "<<t3<<endl;
 	// for (int i = 0; i < nPoints*nGrids; ++i) cout << distances[i] << " "; cout << endl;
 
 	// // step 5 & 6. compute sum (weights * known Values) / totalWeight
@@ -132,39 +135,43 @@ int main(int argc, char **argv) {
 		weightSum, knownValues, gridValues);
 	timer.stop();
 	t4 = timer.elapsedTime();
-	cout<<"DIM "<<DIM<<" t4 "<<t4<<endl;
-
+	// cout<<"DIM "<<DIM<<" t4 "<<t4<<endl;
+	cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t4 "<<t4<<endl;
 	// All calculations are finished.  Write grid data to the specified output file.
-	ofstream outp(argv[2]);
-	// Output points
-	if (outp.good()) {
+	
+
+	/*  for testting speed  */
+	
+	// ofstream outp(argv[2]);
+	// // Output points
+	// if (outp.good()) {
 		
-		// This part writes scattered data points
-		// for (int i = 0; i < nPoints; ++i) {
-		// 	for (int dim = 0; dim < DIM; ++dim) {
-		// 		outp << read(DIM, nPoints, i, dim, knownCoords) << " ";
-		// 	}
-		// 	for (int attr = 0; attr < nValues; ++attr) {
-		// 		outp << readAttribute(nValues, nPoints, i, attr, knownValues) << " ";
-		// 	}
-		// 	outp << knownValues[i] << "\n";
-		// }
-		// outp << "\n\n";
+	// 	// This part writes scattered data points
+	// 	// for (int i = 0; i < nPoints; ++i) {
+	// 	// 	for (int dim = 0; dim < DIM; ++dim) {
+	// 	// 		outp << read(DIM, nPoints, i, dim, knownCoords) << " ";
+	// 	// 	}
+	// 	// 	for (int attr = 0; attr < nValues; ++attr) {
+	// 	// 		outp << readAttribute(nValues, nPoints, i, attr, knownValues) << " ";
+	// 	// 	}
+	// 	// 	outp << knownValues[i] << "\n";
+	// 	// }	
+	// 	// outp << "\n\n";
 
 		
 		
-		for (int i = 0; i < nGrids; ++i) {
-			for (int dim = 0; dim < DIM; ++dim) {
-				outp << readGrid(DIM, nGrids, i, dim, gridCoords) << " ";
-			}
-			for (int attr = 0; attr < nValues; ++attr) {
-				outp << readGridAttribute(nValues, nGrids, i, attr, gridValues) << " ";
-			}
-			outp << "\n";
-		}
+	// 	for (int i = 0; i < nGrids; ++i) {
+	// 		for (int dim = 0; dim < DIM; ++dim) {
+	// 			outp << readGrid(DIM, nGrids, i, dim, gridCoords) << " ";
+	// 		}
+	// 		for (int attr = 0; attr < nValues; ++attr) {
+	// 			outp << readGridAttribute(nValues, nGrids, i, attr, gridValues) << " ";
+	// 		}
+	// 		outp << "\n";
+	// 	}
 		
-		outp.close();
-	}
+	// 	outp.close();
+	// }
 	
 	delete[] bounds;
 	delete[] knownCoords;

@@ -79,20 +79,12 @@ void writeGridAttribute(const int noAttr, const int nPoints,
 void computeBounds(const int DIM, const int nPoints, 
 	const double *knownCoords, double(*bounds)[2]){
 
-	/*
-	para
-	*/
 	// operation too small, no need do parallel
 	for(int d=0; d<DIM;d++){
 		bounds[d][0] = INFINITY; // min
 		bounds[d][1] = -INFINITY; // max
 		// cout<<bounds[d][1]<<endl;
 	}
-
-	/*
-	para
-	*/
-	#pragma omp parallel for
 	for(int i=0; i< nPoints ; ++i){ 
 
 		for(int d=0; d<DIM;d++){
@@ -142,43 +134,6 @@ void computeDistances(const int DIM, const int nPoints,
 		}
 	}
 };
-
-
-// void computeDistances(const int DIM, const int nPoints, 
-// 	const double *knownCoords, const int nGrids, 
-// 	const double *gridCoords, double *distances){ // distance (data1,grid1,...)
-	
-// 	/*
-// 	para
-// 	*/
-// 	// (g1,d1), (g1,d2),...,(g2,d1),(g2,d2),...
-// 	// cant use collapse since is not perfect retangular
-// 	double temp;
-
-// 	#pragma omp parallel for
-// 	for(int i=0;i<nGrids;++i){
-// 		// cout<<"Hello from thread, nthreads \n"<<omp_get_thread_num()<<", "<<omp_get_num_threads(); 
-// 		#pragma omp parallel for
-// 		for(int j=0;j< nPoints; ++j){
-
-// 			distances[ i*nPoints + j ] = 0;
-// 			// temp = 0;
-// 			// #pragma omp parallel for reduction(+:temp)
-// 			// since d is too small, when we do parallelize, is not worth
-// 			for(int d=0; d< DIM; d++){
-
-// 				distances[ i*nPoints + j ] += pow(( knownCoords[ j*DIM + d ] 
-// 					- gridCoords[ i + nGrids * d ]) , 2);
-// 				// temp += pow(( knownCoords[ j*DIM + d ] 
-// 				// 	- gridCoords[ i + nGrids * d ]) , 2);
-
-// 			}
-
-// 			distances[ i*nPoints + j ] = pow(distances[ i*nPoints + j ], 0.5);
-// 			// distances[ i*nPoints + j ] = pow( temp , 0.5);
-// 		}
-// 	}
-// };
 
 
 void computeWeights(const int nGrids, const int nPoints, 
@@ -235,59 +190,3 @@ void computeInterpolation(const int nValues, const int nGrids,
 
 
 };
-
-// void computeInterpolation(const int nValues, const int nGrids, 
-// 	const int nPoints, const double *distances, 
-// 	const double *weightSum, const double *knownValues, 
-// 	double *gridValues){
-
-// 	// double *knownCoords = new double[DIM * nPoints];
-// 	// double *knownValues = new double[nPoints * nValues];
-// 	// double (*bounds)[2] = new double[DIM][2];					// size of DIMS * 2
-// 	// const int nGrids = (int)pow(nDivisions, DIM);				// # of grid points
-// 	// double *gridCoords = new double[(size_t) pow(nDivisions, DIM) * DIM]; // multiply DIM since the dimension coordinate
-// 	// double *distances = new double[nGrids * nPoints];
-// 	// double *weightSum = new double[nGrids]; // why is grid? not nPoints? 
-// 	// double *gridValues = new double[nGrids * nValues];
-
-// 	double temp = 0;
-// 	/*
-// 	para
-// 	*/
-
-// 	#pragma omp parallel for 
-// 	for(int i=0; i<nGrids; ++i){
-
-// 		for(int j=0; j<nValues; ++j){
-// 			// g1_1,g1_2,g1_3,...,g2_1,g2_2,g2_3
-
-// 			// gridValues[ i*nValues + j ] = 0;
-// 			temp = 0;
-// 			bool distan_zero = false;
-// 			int record_p = 0;
-
-// 			#pragma omp parallel for reduction(+: temp)
-// 			for(int p=0; p<nPoints; ++p){
-// 				// gridValues[ i*nValues + j ] +=  distances[ i*nPoints + p ] * knownValues[ p*nValues + j];
-// 				temp +=  distances[ i*nPoints + p ] * knownValues[ p*nValues + j];
-				
-// 				if (isinf(distances[ i*nPoints + p ])){ //isinf
-// 					// temp = knownValues[ p*nValues + j];
-// 					distan_zero = true;
-// 					record_p = p;
-// 					// break;
-// 				}
-// 			}
-
-// 			if(!distan_zero) {
-// 				gridValues[ i*nValues + j ] = temp/weightSum[i];
-// 				// gridValues[ i*nValues + j ] /= weightSum[i];
-// 			}
-// 			else{ // distan_zero is true
-// 				gridValues[ i*nValues + j ] = knownValues[ record_p * nValues + j];
-// 			}
-// 		}
-// 	}
-
-
-// };

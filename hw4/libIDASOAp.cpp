@@ -82,8 +82,8 @@ void computeBounds(const int DIM, const int nPoints,
 		bounds[d][1] = -INFINITY; // max
 		// cout<<bounds[d][1]<<endl;
 	}
-	
-	#pragma omp parallel for collapse(2)
+
+	#pragma omp parallel for
 	for(int i=0; i< nPoints ; ++i){
 
 		for(int d=0; d<DIM;d++){
@@ -119,7 +119,7 @@ void computeDistances(const int DIM, const int nPoints,
 	// }
 
 
-	#pragma omp parallel for 
+	#pragma omp parallel for collapse(2)
 	for(int i=0;i<nGrids;++i){
 		// cout<<"Hello from thread, nthreads \n"<<omp_get_thread_num()<<", "<<omp_get_num_threads(); 
 		for(int j=0;j< nPoints; ++j){
@@ -140,8 +140,6 @@ void computeDistances(const int DIM, const int nPoints,
 
 };
 
-
-
 void computeWeights(const int nGrids, const int nPoints, 
 	double *distances, double *weightSum, const double p ){
 
@@ -149,18 +147,19 @@ void computeWeights(const int nGrids, const int nPoints,
 	double temp;
 
 	// can paralle
+	#pragma omp parallel for collapse(2)// maybe will have inf problem
 	for( int i=0; i< nGrids; i++){		
 		// weightSum[i] = 0;
-		temp = 0;
+		// temp = 0;
 
-		#pragma omp parallel for reduction(+:temp) 
+		// #pragma omp parallel for reduction(+:temp) 
 		for(int j=0;j< nPoints; j++){
 
 			distances[ i + j * nGrids ] = pow(1/distances[ i + j * nGrids ], p);
-			// weightSum[i] += distances[ i + j * nGrids ];
-			temp += distances[ i + j * nGrids ];
+			weightSum[i] += distances[ i + j * nGrids ];
+			// temp += distances[ i + j * nGrids ];
 		}
-		weightSum[i] = temp;
+		// weightSum[i] = temp;
 	}
 
 
