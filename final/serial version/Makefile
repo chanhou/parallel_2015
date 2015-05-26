@@ -15,7 +15,7 @@ test: test.cpp
 
 run_dnn:
 	# ./dnn ./homework4-forests/heart.train ./homework4-forests/heart.test
-	./dnn ./homework4-forests/a1a.train ./homework4-forests/a1a.test
+	./dnn 123 2 500 500 10 0.1 0.01 ./homework4-forests/a1a.train ./homework4-forests/a1a.test
 	# ./dnn ./homework4-forests/a2a.train ./homework4-forests/a2a.t
 	# ./dnn ./homework4-forests/a3a.train ./homework4-forests/a3a.t
 	# ./dnn ./homework4-forests/a4a.train ./homework4-forests/a4a.t

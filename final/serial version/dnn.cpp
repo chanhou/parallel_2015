@@ -19,6 +19,9 @@
 #include "stopWatch.h"
 #include "dnn.h"
 
+#include <cassert>
+#include <chrono>
+
 // int forest_predict(double *attr);
 
 using namespace std;
@@ -42,21 +45,27 @@ dnn::dnn( int num, int dimension, int klass, int hidd1, int hidd2  ) {
 	// model['W3'] = 0.1 * np.random.randn(h2,K)
 	// model['b3'] = np.zeros((1,K))
 
-	// srand (time(NULL));
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	std::normal_distribution<> d(0,1);
+	// std::random_device rd;
+	// std::mt19937 gen(rd());
+	// std::normal_distribution<> d(0,1.);
 	// d(gen)
+
+	// construct a trivial random generator engine from a time-based seed:
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine generator (seed);
+
+	std::normal_distribution<double> distribution (0.0,1.0);
+	
 
 	w1.resize(dim);
 	for(auto &x: w1){
 		for(int i=0;i <h1 ; ++i){
-			x.push_back( 0.1*d(gen) );
+			x.push_back( 0.01*distribution(generator) );
+			// cout<<0.1*distribution(generator)<<" ";
 		}
 	}
 
-	// cout<<0.1*d(gen)<<endl;
+	// cout<<0.1*distribution(generator)<<endl;
 
 	// b1.resize(1);
 	// for(auto &x: b1){
@@ -67,7 +76,7 @@ dnn::dnn( int num, int dimension, int klass, int hidd1, int hidd2  ) {
 	w2.resize(h1);
 	for(auto &x: w2){
 		for(int i=0;i <h2 ; ++i){
-			x.push_back( 0.01*d(gen) );
+			x.push_back( 0.01*distribution(generator) );
 		}
 	}
 	// b2.resize(1);
@@ -79,7 +88,7 @@ dnn::dnn( int num, int dimension, int klass, int hidd1, int hidd2  ) {
 	w3.resize(h2);
 	for(auto &x: w3){
 		for(int i=0;i < k ; ++i){
-			x.push_back( 0.01*d(gen) );
+			x.push_back( 0.01*distribution(generator) );
 		}
 	}
 	// b3.resize(1);
@@ -171,7 +180,10 @@ void read_file(char *file, vector< vector <double> >& my_array ,
 		tmp = strtok(NULL, ": "); // split by token
 
 		// label_array[num_data] = label;
-		my_array[num_data][ 0 ] = label;
+		if(label==-1)
+			my_array[num_data][ 0 ] = 0;
+		else
+			my_array[num_data][ 0 ] = label;
 
 		while(tmp != NULL) {
 			int id = atoi(tmp);
@@ -292,9 +304,6 @@ void dnn::training( vector< vector <double> >& train_x,
 		double t1;
 		
 		timer.start();
-		
-		
-
 		/*
 		feed forward propagation
 		*/		
@@ -303,6 +312,7 @@ void dnn::training( vector< vector <double> >& train_x,
 		sigmoid(hidden_layer_1);
 
 		hidden_layer_2 = matrix_matrix(hidden_layer_1, w2, false, false);
+
 		m_v_add(hidden_layer_2, b2);
 		sigmoid(hidden_layer_2);
 
@@ -313,32 +323,56 @@ void dnn::training( vector< vector <double> >& train_x,
 		// probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True) # [N x K]
 		/*
 		compute probability
+
+		softmax
+		#     e = T.exp(X)
+		#     return e / T.sum(e, axis=1).dimshuffle(0, 'x')
+
         */
 		for (int i=0 ; i<scores.size();++i){
 			double temp = 0;
-			for(int j=0; j< scores[0].size(); ++j)
+			for(int j=0; j< scores[0].size(); ++j){ // class num
 				temp += exp(scores[i][j]); // normalize term
-			for (int j=0; j< scores[0].size(); ++j)
+				// cout<<exp(scores[i][j])<<" ";
+				// cout<<scores[i][j]<<" ";
+			}
+			// cout<<endl;
+			// cout<<endl<<temp<<endl;
+			for (int j=0; j< scores[0].size(); ++j){
 				scores[i][j] = exp(scores[i][j]) / temp; // transform to probalitity
+				// cout<<scores[i][j]<<" ";
+			}
+			// cout<<endl;
+			// break;
 		}
+		// cout<<endl<<"======="<<endl;
 
-// # compute the loss: average cross-entropy loss and regularization
-// corect_logprobs = -np.log(probs[range(num_examples),y])
-// data_loss = np.sum(corect_logprobs)/num_examples
-// reg_loss = 0.5*reg*np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)+ 0.5*reg*np.sum(W3*W3)
-// loss = data_loss + reg_loss
+		// # compute the loss: average cross-entropy loss and regularization
+		// corect_logprobs = -np.log(probs[range(num_examples),y])
+		// data_loss = np.sum(corect_logprobs)/num_examples
+		// reg_loss = 0.5*reg*np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)+ 0.5*reg*np.sum(W3*W3)
+		// loss = data_loss + reg_loss
 
-/*
+		/*
 		compute cost function
 		*/
+		// z      = [ 0.34, 0.66 ]
+		// target = [ 1 , 0 ]
+		// def multinominal_cross_entropy(z, target):
+		//     loss = - T.mean( target * T.log(z) + (1 - target) * T.log(1 - z))
+		// multinominal_cross_entropy(p_y_given_x, target) 
+
 		double data_loss = 0;
 		for(int i=0; i<scores.size();++i){
-			if(train_y[i] == 1) // y = +1
-				data_loss += -log(scores[i][1]);
-			else // y = -1
-				data_loss += -log(scores[i][0]);
+			data_loss += log(scores[i][train_y[i]]) ;
 		}
-		data_loss = data_loss / num_examples;
+		// for(int i=0; i<scores.size();++i){
+		// 	if(train_y[i] == 0 ) // y = 0
+		// 		data_loss += train_y[i] * log(scores[i][0]) + (1-train_y[i])*log(1-scores[i][0]);
+		// 	else // y= +1
+		// 		data_loss += train_y[i] * log(scores[i][1]) + (1-train_y[i])*log(1-scores[i][1]);
+		// }
+		data_loss = (-1)*data_loss / num_examples;
 		
 		double reg_loss = 0;
 
@@ -353,58 +387,82 @@ void dnn::training( vector< vector <double> >& train_x,
 
 		data_loss = data_loss + reg_loss;
 
-		if (iter%2==0){
-			printf("iteration %d: loss %f , validation: %f \n", 
-				iter, data_loss , predict(val_x, val_y) );
-		}	
+		// for(auto &x: scores){
+		// 	for (auto &y: x){
+		// 		cout<< y<<" ";
+		// 	}
+		// 	cout<<endl;
+		// }
+
 
 		// # compute the gradient on scores
 		for(int i=0;i<scores.size(); ++i){
-			if(train_y[i] == 1) {// y = +1
-				scores[i][1] -= 1;
-				scores[i][0] /= num_examples;
-				scores[i][1] /= num_examples;
-			}
-			else{
-				scores[i][0] -= 1;
-				scores[i][0] /= num_examples;
-				scores[i][1] /= num_examples;
-			}
+			scores[i][ train_y[i] ] -= 1;
+			for(int q=0;q<scores[0].size(); ++q)
+				scores[i][q] /= num_examples;
 		}
+
+		// for(auto &x: scores){
+		// 	for (auto &y: x){
+		// 		cout<< y<<" ";
+		// 	}
+		// 	cout<<endl;
+		// }
+
+
 
 		// # BACKPROP HERE
 		// dw3 = (hidden_layer_2.T).dot(dscores)
 		// db3 = np.sum(dscores, axis=0, keepdims=True)
+
 		// cout<<hidden_layer_2.size()<<" "<<hidden_layer_2[0].size()<<endl;
 		// cout<<scores.size()<<" "<<scores[0].size()<<endl;
+
 		dw3 = matrix_matrix(hidden_layer_2, scores, true,false);
+		// for(auto &x: hidden_layer_2){
+		// 	for (auto &y: x){
+		// 		cout<< y<<" ";
+		// 	}
+		// 	cout<<endl;
+		// }
+
 		// cout<<dw3.size()<<" "<<dw3[0].size()<<endl;
+
 		for(int i=0; i<scores[0].size(); ++i){
 			db3.push_back(0);
 			for(int q=0; q< scores.size(); ++q){
 				db3[i] += scores[q][i];
 			}
 		}
+
 		// cout<<db3.size()<<" "<<endl;
+		// for(auto &x: db3){
+		// 		cout<< x <<" ";
+			
+		// 	cout<<endl;
+		// }
 
 		// #backprop sigmoid nonlinearity here
 		// dhidden2 = dscores.dot(w3.T)*sigmoid_grad(hidden_layer_2)
-		// dw2 = (hidden_layer.T).dot(dhidden2)
-		// db2 = np.sum(dhidden2, axis=0)
-		// dhidden = dhidden2.dot(w2.T)*sigmoid_grad(hidden_layer_1)
 
 		// cout<<scores.size()<<" "<<scores[0].size()<<endl;
 		// cout<<w3.size()<<" "<<w3[0].size()<<endl;
 		dhidden2 = matrix_matrix( scores, w3, false, true );
+
 		// cout<<dhidden2.size()<<" "<<dhidden2[0].size()<<endl;
+
 		sigmoid_grad(hidden_layer_2);
+
 		// cout<<hidden_layer_2.size()<<" "<<hidden_layer_2[0].size()<<endl;
+
 		for(int i=0; i< dhidden2.size(); ++i){
 			for(int q =0; q< dhidden2[0].size(); ++q){
-				dhidden2[i][q] = dhidden2[i][q]*hidden_layer_2[i][q];
+				dhidden2[i][q] *= hidden_layer_2[i][q];
 			}
 		}
 
+		// dw2 = (hidden_layer.T).dot(dhidden2)
+		// db2 = np.sum(dhidden2, axis=0)
 		dw2 = matrix_matrix(hidden_layer_1 , dhidden2, true , false);
 		for(int i=0; i<dhidden2[0].size(); ++i){
 			db2.push_back(0);
@@ -412,17 +470,20 @@ void dnn::training( vector< vector <double> >& train_x,
 				db2[i] += dhidden2[q][i];
 			}
 		}
+
+		// dhidden = dhidden2.dot(w2.T)*sigmoid_grad(hidden_layer_1)
 		dhidden1 = matrix_matrix(dhidden2, w2, false, true);
 		sigmoid_grad(hidden_layer_1);
 		for(int i=0; i< dhidden1.size(); ++i){
 			for(int q =0; q< dhidden1[0].size(); ++q){
-				dhidden1[i][q] = dhidden1[i][q]*hidden_layer_1[i][q];
+				dhidden1[i][q] *= hidden_layer_1[i][q];
 			}
 		}
 
 		// dw1 =  np.dot(X.T, dhidden)
 		// db1 = np.sum(dhidden, axis=0)
 		dw1 = matrix_matrix(train_x, dhidden1, true, false);
+
 		for(int i=0; i<dhidden1[0].size(); ++i){
 			db1.push_back(0);
 			for(int q=0; q< dhidden1.size(); ++q){
@@ -456,7 +517,25 @@ void dnn::training( vector< vector <double> >& train_x,
 
 		// cout<<w1.size()<<" "<<w1[0].size()<<endl;
 		// cout<<dw1.size()<<" "<<dw1[0].size()<<endl;
+
+		// for(auto &x: w1){
+		// 	for (auto &y: x){
+		// 		cout<< y<<" ";
+		// 	}
+		// 	cout<<endl;
+		// }
+		// cout<<endl<<endl<<endl;
+		// cout<<endl<<endl<<endl;
+		// cout<<endl<<endl<<endl;
+		// cout<<"************************"<<endl;
+		// cout<<endl<<endl<<endl;
 		update_2(w1, dw1, yida);
+		// for(auto &x: w1){
+		// 	for (auto &y: x){
+		// 		cout<< y<<" ";
+		// 	}
+		// 	cout<<endl;
+		// }
 		update_1(b1, db1, yida);
 		update_2(w2, dw2, yida);
 		update_1(b2, db2, yida);
@@ -467,7 +546,12 @@ void dnn::training( vector< vector <double> >& train_x,
 
 		timer.stop();
 		t1 = timer.elapsedTime();
-		cout<<t1<<endl;
+		// cout<<t1<<endl;
+		if (iter%1==0){
+			printf("epochs %d: loss %f, val: %f, t: %f \n", 
+				iter, data_loss , predict(val_x, val_y), t1 );
+		}	
+
 	}
 
 
@@ -537,10 +621,8 @@ double dnn::predict( std::vector< std::vector <double> >  & train_x,
 		for (int q=0; q<scores[0].size(); ++q){
 			// cout<<scores[i][q]<<endl;
 			if (scores[i][q]>temp){
-				if (q==0)
-					predict_class[i] = -1; // y label
-				else
-					predict_class[i] = 1;
+				temp = scores[i][q];
+				predict_class[i] = q; // y label
 			}
 		}
 	}
@@ -611,6 +693,7 @@ void update_2 (std::vector< std::vector <double> >& array1,
 void m_v_add (std::vector< std::vector <double> >& array,
 	std::vector <double> & b ){
 
+	assert(array[0].size()==b.size());
 	// cout<<"==="<<endl;
 	for (int i=0; i< array.size(); ++i){ // 20
 		for(int q =0 ;q < array[0].size(); ++q){ //100
@@ -634,6 +717,10 @@ std::vector< std::vector <double> > matrix_matrix(std::vector< std::vector <doub
 				array1_T[j][i] = array1[i][j];
 			}
 		}
+
+		// array1 transpose
+		assert(array1.size()==array2.size());
+
 		// cout<<x<<" "<<array1[0].size()<<" "<<array2.size()<<" "<<y<<endl;
 		vector< vector <double> > result(z, vector<double> (y,0));
 		for (int i=0; i < array1_T.size(); ++i){
@@ -655,6 +742,9 @@ std::vector< std::vector <double> > matrix_matrix(std::vector< std::vector <doub
 				array2_T[j][i] = array2[i][j];
 			}
 		}
+
+		// array 2 transpose
+		assert(array1[0].size()==array2[0].size());
 		// cout<<x<<" "<<array1[0].size()<<" "<<array2.size()<<" "<<y<<endl;
 		vector< vector <double> > result(x, vector<double> (z,0));
 		for (int i=0; i < array1.size(); ++i){
@@ -669,6 +759,8 @@ std::vector< std::vector <double> > matrix_matrix(std::vector< std::vector <doub
 		return result;
 	}
 	else{
+
+		assert(array1[0].size()==array2.size());
 
 		vector< vector <double> > result(x, vector<double> (y,0));
 		for (int i=0; i < array1.size(); ++i){
