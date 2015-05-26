@@ -25,8 +25,12 @@ public:
 	void training(
 		std::vector< std::vector <double> >  & train_x,
 		std::vector <double>   & train_y,
-		 int epochs, double yida);
-	void predict() ;
+		std::vector< std::vector <double> >  & val_x,
+		std::vector <double>   & val_y,
+		 int epochs, double yida, double reg);
+
+	double predict(std::vector< std::vector <double> >  & train_x,
+		std::vector <double>   & train_y) ;
 
 private:
 	int N;   // # of data points per class
@@ -53,6 +57,8 @@ void sigmoid_grad(std::vector< std::vector <double> >& array);
 std::vector< std::vector <double> > matrix_matrix(std::vector< std::vector <double> >& array1, 
 	std::vector< std::vector <double> >& array2 , bool transpose_1, bool transpose_2);
 
+double sum(std::vector< std::vector <double> >& array1);
+
 void update_1 ( std::vector <double> & array1,
 	std::vector <double> & array2,
 	double b );
@@ -63,7 +69,7 @@ void update_2 (std::vector< std::vector <double> >& array1,
 
 void m_v_add (std::vector< std::vector <double> >& array, std::vector <double> & b );
 
-void read_file( char *file,std::vector< std::vector <double> >& my_array);
+void read_file( char *file,std::vector< std::vector <double> >& my_array, int max_fea);
 
 void cv_split( 
 	std::vector< std::vector <double> > &my_array ,
@@ -74,13 +80,13 @@ void cv_split(
 
 
 
-void sort_index( std::vector< std::vector <double> >& my_array , int colindex );
+// void sort_index( std::vector< std::vector <double> >& my_array , int colindex );
 
-double confusion(  double a , double b );
+// double confusion(  double a , double b );
 
-double * decision(std::vector< std::vector <double> >& array);
+// double * decision(std::vector< std::vector <double> >& array);
 
-int * check_terminate( std::vector< std::vector <double> >& array,  
-	int dim , double theta ,double epsilon);
+// int * check_terminate( std::vector< std::vector <double> >& array,  
+// 	int dim , double theta ,double epsilon);
 
 #endif

@@ -16,7 +16,7 @@
 
 #include <random> // random generator
 
-
+#include "stopWatch.h"
 #include "dnn.h"
 
 // int forest_predict(double *attr);
@@ -67,7 +67,7 @@ dnn::dnn( int num, int dimension, int klass, int hidd1, int hidd2  ) {
 	w2.resize(h1);
 	for(auto &x: w2){
 		for(int i=0;i <h2 ; ++i){
-			x.push_back( 0.1*d(gen) );
+			x.push_back( 0.01*d(gen) );
 		}
 	}
 	// b2.resize(1);
@@ -79,7 +79,7 @@ dnn::dnn( int num, int dimension, int klass, int hidd1, int hidd2  ) {
 	w3.resize(h2);
 	for(auto &x: w3){
 		for(int i=0;i < k ; ++i){
-			x.push_back( 0.1*d(gen) );
+			x.push_back( 0.01*d(gen) );
 		}
 	}
 	// b3.resize(1);
@@ -87,10 +87,12 @@ dnn::dnn( int num, int dimension, int klass, int hidd1, int hidd2  ) {
 	// 	x.resize( k ); 
 	// }
 	b3.resize(k);
+
 }
 
 
-void read_file(char *file, vector< vector <double> >& my_array ){
+void read_file(char *file, vector< vector <double> >& my_array , 
+	int max_fea){
 
 	double* features = new double[MAX_FEATURE];
 	
@@ -144,7 +146,8 @@ void read_file(char *file, vector< vector <double> >& my_array ){
 	// my_array(num_data, vector<double>(max_index,0));
 	my_array.resize(num_data);
 	for(auto &x: my_array){
-		x.resize(max_index + 1); // insert label
+		// x.resize(max_index + 1); // insert label
+		x.resize(max_fea +1);
 	}
 
 	// label_array.resize(num_data);
@@ -259,15 +262,20 @@ vector< vector< vector <double> > > split( vector< vector <double> >& my_array, 
 }
 
 void dnn::training( vector< vector <double> >& train_x,
-vector <double> & train_y , int epochs, double yida){
+	vector <double> & train_y , 
+	vector< vector <double> >& val_x,
+	vector <double> & val_y , 
+	int epochs, double yida, double reg){
 
 	vector < vector <double>>  hidden_layer_1;
 	vector < vector <double>>  hidden_layer_2;
 	vector < vector <double>>  scores;
 
+	vector < vector <double>>  temp;
+
 	// vector <double>  correct_logprobs(train_x.size(), 0);
 	vector < vector <double>>  dw3;
-	vector < vector <double>>  dw2;
+	vector < vector <double>>  dw2;	
 	vector < vector <double>>  dw1;
 	vector <double>  db3;
 	vector <double>  db2;
@@ -278,8 +286,15 @@ vector <double> & train_y , int epochs, double yida){
 
 	double num_examples = (double)train_x.size();
 
+	stopWatch timer;
+
 	for(int iter=0; iter< epochs; ++iter){
+		double t1;
 		
+		timer.start();
+		
+		
+
 		/*
 		feed forward propagation
 		*/		
@@ -294,9 +309,9 @@ vector <double> & train_y , int epochs, double yida){
 		scores = matrix_matrix(hidden_layer_2, w3, false, false);
 		m_v_add(scores, b3);
 
-        // exp_scores = np.exp(scores)
-        // probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True) # [N x K]
-        /*
+		// exp_scores = np.exp(scores)
+		// probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True) # [N x K]
+		/*
 		compute probability
         */
 		for (int i=0 ; i<scores.size();++i){
@@ -307,13 +322,13 @@ vector <double> & train_y , int epochs, double yida){
 				scores[i][j] = exp(scores[i][j]) / temp; // transform to probalitity
 		}
 
-        // # compute the loss: average cross-entropy loss and regularization
-        // corect_logprobs = -np.log(probs[range(num_examples),y])
-        // data_loss = np.sum(corect_logprobs)/num_examples
-        // reg_loss = 0.5*reg*np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)+ 0.5*reg*np.sum(W3*W3)
-        // loss = data_loss + reg_loss
+// # compute the loss: average cross-entropy loss and regularization
+// corect_logprobs = -np.log(probs[range(num_examples),y])
+// data_loss = np.sum(corect_logprobs)/num_examples
+// reg_loss = 0.5*reg*np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)+ 0.5*reg*np.sum(W3*W3)
+// loss = data_loss + reg_loss
 
-		/*
+/*
 		compute cost function
 		*/
 		double data_loss = 0;
@@ -324,6 +339,24 @@ vector <double> & train_y , int epochs, double yida){
 				data_loss += -log(scores[i][0]);
 		}
 		data_loss = data_loss / num_examples;
+		
+		double reg_loss = 0;
+
+		temp = matrix_matrix(w1,w1,true,false);
+		reg_loss += 0.5*reg*sum(temp);
+
+		temp = matrix_matrix(w2,w2,true,false);
+		reg_loss += 0.5*reg*sum(temp);
+
+		temp = matrix_matrix(w3,w3,true,false);
+		reg_loss += 0.5*reg*sum(temp);
+
+		data_loss = data_loss + reg_loss;
+
+		if (iter%2==0){
+			printf("iteration %d: loss %f , validation: %f \n", 
+				iter, data_loss , predict(val_x, val_y) );
+		}	
 
 		// # compute the gradient on scores
 		for(int i=0;i<scores.size(); ++i){
@@ -397,6 +430,22 @@ vector <double> & train_y , int epochs, double yida){
 			}
 		}
 
+		// # add regularization
+		// dW3+= reg * W3
+		// dW2 += reg * W2
+		// dW1 += reg * W1
+		for(int i=0; i<dw3.size(); ++i)
+			for (int q=0; q<dw3[0].size(); ++q)
+				dw3[i][q] += reg * w3[i][q];
+		for(int i=0; i<dw2.size(); ++i)
+			for (int q=0; q<dw2[0].size(); ++q)
+				dw2[i][q] += reg * w2[i][q];
+		for(int i=0; i<dw1.size(); ++i)
+			for (int q=0; q<dw1[0].size(); ++q)
+				dw1[i][q] += reg * w1[i][q];
+
+		// cout<<"done"<<endl;
+
 		// # update
 		// W1 += -step_size * dW1
 		// b1 += -step_size * db1
@@ -414,6 +463,11 @@ vector <double> & train_y , int epochs, double yida){
 		update_2(w3, dw3, yida);
 		update_1(b3, db3, yida);
 
+		// cout<<yida<<endl;
+
+		timer.stop();
+		t1 = timer.elapsedTime();
+		cout<<t1<<endl;
 	}
 
 
@@ -421,7 +475,84 @@ vector <double> & train_y , int epochs, double yida){
 
 }
 
-void dnn::predict(){
+double dnn::predict( std::vector< std::vector <double> >  & train_x,
+		std::vector <double>   & train_y ){
+	// # evaluate training set accuracy
+	// if NONLINEARITY == 'RELU':
+	//     hidden_layer = relu(np.dot(X, W1) + b1)
+	//     hidden_layer2 = relu(np.dot(hidden_layer, W2) + b2)
+	// elif NONLINEARITY == 'SIGM':
+	//     hidden_layer = sigmoid(np.dot(X, W1) + b1)
+	//     hidden_layer2 = sigmoid(np.dot(hidden_layer, W2) + b2)
+	// scores = np.dot(hidden_layer2, W3) + b3
+	// predicted_class = np.argmax(scores, axis=1)
+	// print 'training accuracy: %.2f' % (np.mean(predicted_class == y))  
+
+	vector < vector <double>>  hidden_layer_1;
+	vector < vector <double>>  hidden_layer_2;
+	vector < vector <double>>  scores;
+
+	vector <int>  predict_class;
+	
+	
+	// cout<<train_x.size()<<" "<<train_x[0].size()<<endl;
+	// cout<<w1.size()<<" "<<w1[0].size()<<endl;
+
+	hidden_layer_1 = ( matrix_matrix(train_x, w1, false, false) );
+	// cout<<"done"<<endl;
+	// cout<<hidden_layer_1.size()<<" "<<hidden_layer_1[0].size()<<endl;
+	// cout<<b1.size()<<" "<<endl;
+
+	m_v_add(hidden_layer_1, b1);
+	// cout<<"done"<<endl;
+	sigmoid(hidden_layer_1);
+
+	// cout<<"done"<<endl;
+
+	hidden_layer_2 = matrix_matrix(hidden_layer_1, w2, false, false);
+	m_v_add(hidden_layer_2, b2);
+	sigmoid(hidden_layer_2);
+
+	// for(auto&x:hidden_layer_2){
+	// 	for(auto&z:x){
+	// 		cout<<z<<" ";
+	// 	}
+	// }
+
+	// cout<<hidden_layer_2.size()<<" "<<hidden_layer_2[0].size()<<endl;
+	// cout<<w3.size()<<" "<<w3[0].size()<<endl;
+	scores = matrix_matrix(hidden_layer_2, w3, false, false);
+	m_v_add(scores, b3);
+
+	// for(auto&x:scores){
+	// 	for(auto&z:x){
+	// 		cout<<z<<" ";
+	// 	}
+	// }
+
+	
+	for(int i=0; i< scores.size(); ++i){
+		predict_class.push_back(0);
+		double temp = -INFINITY;
+		for (int q=0; q<scores[0].size(); ++q){
+			// cout<<scores[i][q]<<endl;
+			if (scores[i][q]>temp){
+				if (q==0)
+					predict_class[i] = -1; // y label
+				else
+					predict_class[i] = 1;
+			}
+		}
+	}
+
+	double correct =0;
+	for (int i=0; i<predict_class.size(); ++i){
+		// cout<<train_y[i]<<" ";
+		if (predict_class[i] == train_y[i])
+			correct++;
+	}
+
+	return correct/(double)predict_class.size();
 
 }
 
@@ -443,6 +574,16 @@ void sigmoid_grad(std::vector< std::vector <double> >& array){
 	}
 }
 
+double sum(std::vector< std::vector <double> >& array1){
+	double sum=0;
+	for (int i=0;i<array1.size(); ++i){
+		for(int q=0; q< array1[0].size(); ++q){
+			sum += array1[i][q];
+		}
+	}
+	return sum;
+}
+
 void update_1 ( std::vector <double> & array1,
 	std::vector <double> & array2,
 	double b ){
@@ -455,20 +596,25 @@ void update_1 ( std::vector <double> & array1,
 void update_2 (std::vector< std::vector <double> >& array1,
 	std::vector< std::vector <double> >& array2,
 	double b ){
-
+	// cout<<"done"<<endl;
+	// cout<<array1.size()<<" "<<array1[0].size();
+	// cout<<array2.size()<<" "<<array2[0].size();
 	for (int i=0; i< array1.size(); ++i){
 		for(int q =0 ;q < array1[0].size(); ++q){
-			array1[i][q] += -b* array2[i][q] ;
+			array1[i][q] += -b * array2[i][q] ;
 		}
 	}
 }
 
+
+
 void m_v_add (std::vector< std::vector <double> >& array,
 	std::vector <double> & b ){
 
-	for (int i=0; i< b.size(); ++i){
-		for(int q =0 ;q < array[0].size(); ++q){
-			array[i][q] += b[i];
+	// cout<<"==="<<endl;
+	for (int i=0; i< array.size(); ++i){ // 20
+		for(int q =0 ;q < array[0].size(); ++q){ //100
+			array[i][q] += b[q];
 		}
 	}
 }
@@ -541,18 +687,18 @@ std::vector< std::vector <double> > matrix_matrix(std::vector< std::vector <doub
 }
 
 
-void sort_index( vector< vector <double> >& my_array , int colindex ){
+// void sort_index( vector< vector <double> >& my_array , int colindex ){
 
-	// bool compareTwoRows(vector< double > rowA, vector< double > rowB){
-	// 	return (  (rowA[ colindex ]<rowB[ colindex ]) );
-	// // return ( (rowA[0]<rowB[0]) || ((rowA[0]==rowB[0])&&(rowA[1]<rowB[1])) );
-	// }
+// 	// bool compareTwoRows(vector< double > rowA, vector< double > rowB){
+// 	// 	return (  (rowA[ colindex ]<rowB[ colindex ]) );
+// 	// // return ( (rowA[0]<rowB[0]) || ((rowA[0]==rowB[0])&&(rowA[1]<rowB[1])) );
+// 	// }
 
-	auto glambda = [ colindex ]( vector< double > a, vector< double > b) { return a[colindex] < b[colindex] ; };
+// 	auto glambda = [ colindex ]( vector< double > a, vector< double > b) { return a[colindex] < b[colindex] ; };
 
-	sort(my_array.begin(), my_array.end(), glambda );
+// 	sort(my_array.begin(), my_array.end(), glambda );
 
-}
+// }
 
 // tree_node* build_tree(std::vector< std::vector <double> > &my_array, 
 // 	int colindex , double theta, double epsilon){
