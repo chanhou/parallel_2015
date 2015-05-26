@@ -11,10 +11,6 @@ reference:
 1. http://cs224d.stanford.edu/notebooks/vanishing_grad_example.html
 */
 
-// class dnn;
-
-
-
 class dnn {
 public:
 	dnn( int num, int dimension, int klass, int hidd1, int hidd2 );
@@ -78,15 +74,5 @@ void cv_split(
 	std::vector< std::vector <double> > &val_x ,
 	std::vector <double>  &val_y, double percent);
 
-
-
-// void sort_index( std::vector< std::vector <double> >& my_array , int colindex );
-
-// double confusion(  double a , double b );
-
-// double * decision(std::vector< std::vector <double> >& array);
-
-// int * check_terminate( std::vector< std::vector <double> >& array,  
-// 	int dim , double theta ,double epsilon);
 
 #endif
