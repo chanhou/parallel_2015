@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
 	DATA_TYPE t2;
 	DATA_TYPE t3;
 	DATA_TYPE t4;
-	// stopWatch timer;
+	stopWatch timer;
 
 	// read data from the specified file and store data into appropriate data structures using write & writeAttribute functions
 	for (int pt = 0; pt < nPoints; ++pt) {
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	inp.close();
-	cout<<"great1"<<endl;
+	// cout<<"great1"<<endl;
 
 
 	/*
@@ -134,12 +134,15 @@ int main(int argc, char **argv) {
 		
 		// find bounds of known data points
 		// non opencl
-		// timer.start();
+		timer.start();
 		computeBounds(DIM, nPoints, knownCoords, bounds);
 		// cout<<"great3"<<endl;
-		// timer.stop();
-		// t1 = timer.elapsedTime();
-		// cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t1 "<<t1<<endl;
+		timer.stop();
+		t1 = timer.elapsedTime();
+		// cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<endl;
+		// cout<<"t1 "<<t1<<endl;
+
+		cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t1 "<<t1<<endl;
 
 		// create grid points in unknownCoords
 		// non opencl
@@ -164,9 +167,13 @@ int main(int argc, char **argv) {
 		// step 3. compute distances between all grids points and all known data points
 		// opencl version
 		// computeDistances(DIM, nPoints, knownCoords_, nGrids, gridCoords_, distances_);
+		timer.start();
 		computeDistances( gpu.cmdQueue , *gpu.program, DIM, nPoints, 
 			knownCoords_, nGrids, gridCoords_, distances_);
-
+		timer.stop();
+		t2 = timer.elapsedTime();
+		// cout<<"t2 "<<t2<<endl;
+		cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t2 "<<t2<<endl;
 		// cout<<"great9"<<endl;
 
 		// // move data from device to host
@@ -184,8 +191,14 @@ int main(int argc, char **argv) {
 			nGrids * sizeof(cl_float), weightSum);
 
 		// step 4. turn the distance array into weight array, and compute the total weight
+		timer.start();
 		computeWeights( gpu.cmdQueue , *gpu.program, nGrids, nPoints, 
 			distances_, weightSum_);
+		timer.stop();
+		t3 = timer.elapsedTime();
+		// cout<<"t3 "<<t3<<endl;
+		cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t3 "<<t3<<endl;
+
 		
 		// for (int i = 0; i < nPoints*nGrids; ++i) cout << distances[i] << " "; cout << endl;
 		// for (int i = 0; i < nGrids; ++i) cout << weightSum[i] << " "; cout << endl;
@@ -196,9 +209,15 @@ int main(int argc, char **argv) {
 		// 	nGrids * nValues * sizeof(cl_float), gridValues);
 
 		// // step 5 & 6. compute sum (weights * known Values) / totalWeight
+		timer.start();
 		computeInterpolation(gpu.cmdQueue , *gpu.program, nValues, nGrids, 
 			nPoints, distances_, 
 			weightSum_, knownValues_, gridValues_);
+		timer.stop();
+		t4 = timer.elapsedTime();
+		// cout<<"t4 "<<t4<<endl;
+		cout<<DIM<<" "<<nPoints<<" "<<nValues<<" "<<nDivisions<<" t4 "<<t4<<endl;
+
 		
 		// move data from device to host
 		gpu.cmdQueue.enqueueReadBuffer(distances_, CL_TRUE, 0, 
@@ -212,34 +231,34 @@ int main(int argc, char **argv) {
 		
 		// All calculations are finished.  Write grid data to the specified output file.
 	
-		ofstream outp(argv[2]);
-		// Output points
-		if (outp.good()) {
+		// ofstream outp(argv[2]);
+		// // Output points
+		// if (outp.good()) {
 			
-			// This part writes scattered data points
-			// for (int i = 0; i < nPoints; ++i) {
-			// 	for (int dim = 0; dim < DIM; ++dim) {
-			// 		outp << read(DIM, nPoints, i, dim, knownCoords) << " ";
-			// 	}
-			// 	for (int attr = 0; attr < nValues; ++attr) {
-			// 		outp << readAttribute(nValues, nPoints, i, attr, knownValues) << " ";
-			// 	}
-			// 	outp << knownValues[i] << "\n";
-			// }	
-			// outp << "\n\n";
+		// 	// This part writes scattered data points
+		// 	// for (int i = 0; i < nPoints; ++i) {
+		// 	// 	for (int dim = 0; dim < DIM; ++dim) {
+		// 	// 		outp << read(DIM, nPoints, i, dim, knownCoords) << " ";
+		// 	// 	}
+		// 	// 	for (int attr = 0; attr < nValues; ++attr) {
+		// 	// 		outp << readAttribute(nValues, nPoints, i, attr, knownValues) << " ";
+		// 	// 	}
+		// 	// 	outp << knownValues[i] << "\n";
+		// 	// }	
+		// 	// outp << "\n\n";
 			
-			for (int i = 0; i < nGrids; ++i) {
-				for (int dim = 0; dim < DIM; ++dim) {
-					outp << readGrid(DIM, nGrids, i, dim, gridCoords) << " ";
-				}
-				for (int attr = 0; attr < nValues; ++attr) {
-					outp << readGridAttribute(nValues, nGrids, i, attr, gridValues) << " ";
-				}
-				outp << "\n";
-			}
+		// 	for (int i = 0; i < nGrids; ++i) {
+		// 		for (int dim = 0; dim < DIM; ++dim) {
+		// 			outp << readGrid(DIM, nGrids, i, dim, gridCoords) << " ";
+		// 		}
+		// 		for (int attr = 0; attr < nValues; ++attr) {
+		// 			outp << readGridAttribute(nValues, nGrids, i, attr, gridValues) << " ";
+		// 		}
+		// 		outp << "\n";
+		// 	}
 			
-			outp.close();
-		}
+		// 	outp.close();
+		// }
 
 		delete[] bounds;
 		delete[] knownCoords;

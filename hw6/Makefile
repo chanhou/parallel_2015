@@ -1,4 +1,5 @@
-target = libIDAAOSp libIDASOAp mainAOSp.exe mainSOAp.exe
+# target = libIDAAOSp libIDASOAp mainAOSp.exe mainSOAp.exe
+target = mainAOScl.exe mainSOAcl.exe
 CFLAGS = -O2 -Wall
 CPPFLAGS = -Wall -O3 -std=c++11 -march=native -funroll-loops -fomit-frame-pointer -fopenmp
 
@@ -21,11 +22,11 @@ lOCL=-L/opt/AMDAPP/current/lib/x86_64 -lOpenCL
 YoUtil.o: YoUtil.cpp
 	g++ $(CPPFLAGS) -c $< -o $@
 
-libIDAAOScl: libIDAAOScl.cpp YoUtil.o
-	# rm libIDAAOScl.a
-	# g++ -c -fopenmp libIDAAOScl.cpp
-	g++ $(CPPFLAGS) $< -o $@ $(iOCL) $(lOCL) -lrt YoUtil.o
-	ar -q libIDAAOScl.a libIDAAOScl.o
+# libIDAAOScl: libIDAAOScl.cpp YoUtil.o
+# 	# rm libIDAAOScl.a
+# 	# g++ -c -fopenmp libIDAAOScl.cpp
+# 	g++ $(CPPFLAGS) $< -o $@ $(iOCL) $(lOCL) -lrt YoUtil.o
+# 	ar -q libIDAAOScl.a libIDAAOScl.o
 	
 # libIDASOAcl: libIDASOAcl.cpp
 # 	rm libIDASOAcl.a
@@ -44,6 +45,9 @@ libIDAAOScl: libIDAAOScl.cpp YoUtil.o
 
 mainAOScl.exe: main.cpp libIDAAOScl.cpp YoUtil.o
 	g++ $(CPPFLAGS) main.cpp libIDAAOScl.cpp -o $@ $(iOCL) $(lOCL) -lrt YoUtil.o
+
+mainSOAcl.exe: main.cpp libIDASOAcl.cpp YoUtil.o
+	g++ $(CPPFLAGS) main.cpp libIDASOAcl.cpp -o $@ $(iOCL) $(lOCL) -lrt YoUtil.o
 
 # mainSOAcl.exe: main.cpp libIDASOAcl.cpp stopWatch.o
 # 	g++ $(CPPFLAGS) -fopenmp main.cpp stopWatch.o -lIDASOAp -L./ -o $@
@@ -64,10 +68,10 @@ generate: generate.cpp
 # 	g++ $(CPPFLAGS) $^ -o $@ $(iCBLAS) $(lCBLAS)
 
 run: 
-	./mainAOSp.exe ./test1.dat test1_AOS.out
-	./mainSOAp.exe ./test1.dat test1_SOA.out
-	./mainAOSp.exe ./test2.dat test2_AOS.out
-	./mainSOAp.exe ./test2.dat test2_SOA.out
+	./mainAOScl.exe ./test1.dat test1_AOS.out
+	./mainSOAcl.exe ./test1.dat test1_SOA.out
+	./mainAOScl.exe ./test2.dat test2_AOS.out
+	./mainSOAcl.exe ./test2.dat test2_SOA.out
 
 run_generate:
 	./generate 2 4 3 10 test_2_dim.dat

@@ -1,41 +1,40 @@
 #include <iostream>
-#include "math.h"
 #include "IDALib.h"
+#include "math.h"
 
 using namespace std;
 
 typedef float MY_DATA_TYPE;
 
-
 // read/write to known coordinates
 MY_DATA_TYPE read(const int DIM, const int nPoints, const int whichPt, 
 	const int whichDim, const MY_DATA_TYPE *coords){
 
-	return coords[ whichPt * DIM + whichDim ];
+	return coords[ whichPt + whichDim * nPoints ];
+
 };
-
-
 void  write(const int DIM, const int nPoints, const int whichPt, 
 	const int whichDim, MY_DATA_TYPE *coords, const MY_DATA_TYPE val){
-	// record raw data by row
-	// x1,y1,x2,y2
-	coords[ whichPt * DIM + whichDim ] = val; 
+
+	// record by column
+	// x1,x2,y1,y2
+	coords[ whichPt + whichDim * nPoints ] = val;
+
 };
 
 // read/write to grid coordinates
 MY_DATA_TYPE readGrid(const int DIM, const int nGridPoints, 
 	const int whichGridPt, const int whichDim, const MY_DATA_TYPE *gridCoords){
 
-	// return gridCoords[ whichGridPt * DIM + whichDim ];
 	return gridCoords[ whichGridPt +  nGridPoints * whichDim ];
 
 };
-
 void  writeGrid(const int DIM, const int nGridPoints, 
 	const int whichGridPt, const int whichDim, MY_DATA_TYPE *gridCoords, 
 	const MY_DATA_TYPE val){
 
-	// gridCoords[ whichGridPt * DIM + whichDim ] = val; // x1,y1,x2,y2
+
+	// gridCoords[ whichGridPt * DIM + whichDim ] = val; 
 	gridCoords[ whichGridPt +  nGridPoints * whichDim ] = val; // x1,x2,...,y1,y2,...
 
 };
@@ -44,14 +43,16 @@ void  writeGrid(const int DIM, const int nGridPoints,
 MY_DATA_TYPE readAttribute(const int noAttr, const int nPoints, 
 	const int whichPt, const int whichAttr, const MY_DATA_TYPE *values){
 
-	return values[whichPt * noAttr + whichAttr];
-};
 
-void writeAttribute(const int noAttr, const int nPoints, 
+	return values[ whichPt + whichAttr * nPoints];
+
+};
+void   writeAttribute(const int noAttr, const int nPoints, 
 	const int whichPt, const int whichAttr, MY_DATA_TYPE *values, 
 	const MY_DATA_TYPE val){
-	// v1_1,v1_2,v1_3,v2_1,v2_2,v2_3
-	values[ whichPt * noAttr + whichAttr ] = val;
+
+	// v1_1,v2_1,v3_1,....v1_2,v2_2,v3_2,.....
+	values[ whichPt + whichAttr * nPoints] = val;
 
 };
 
@@ -60,19 +61,15 @@ MY_DATA_TYPE readGridAttribute(const int noAttr, const int nPoints,
 	const int whichPt, 
 	const int whichAttr, const MY_DATA_TYPE *values){
 
-	// g1_1,g1_2,g1_3,g2_1,g2_2,g2_3
-	return values[ whichPt* noAttr + whichAttr ];
-	// return values[ whichGridPt * DIM + whichDim ];
+	return values[ whichPt + whichAttr * nPoints ];
 
 };
-
-
 void   writeGridAttribute(const int noAttr, const int nPoints, 
 	const int whichPt, const int whichAttr, MY_DATA_TYPE *values, 
 	const MY_DATA_TYPE val){
 
-	// g1_1,g1_2,g1_3,g2_1,g2_2,g2_3
-	values[ whichPt* noAttr + whichAttr  ] = val;
+	// g1_1,g2_1,g3_1,...,g1_2,g2_2,g3_2
+	values[ whichPt + whichAttr * nPoints ] = val;
 
 };
 
@@ -89,11 +86,11 @@ void computeBounds(const int DIM, const int nPoints,
 
 		for(int d=0; d<DIM;d++){
 
-			if ( knownCoords[ i*DIM + d ] < bounds[d][0]){
-				bounds[d][0] = knownCoords[ i*DIM + d ]; // min
+			if ( knownCoords[ i + d * nPoints ] < bounds[d][0]){
+				bounds[d][0] = knownCoords[ i + d * nPoints ]; // min
 			}
-			else if ( knownCoords[ i*DIM + d ] > bounds[d][1] ){
-				bounds[d][1] = knownCoords[ i*DIM + d ]; // max	
+			else if ( knownCoords[ i + d * nPoints ] > bounds[d][1] ){
+				bounds[d][1] = knownCoords[ i + d * nPoints]; // max	
 			}
 			
 		}
@@ -104,19 +101,27 @@ void computeBounds(const int DIM, const int nPoints,
 
 void computeDistances(const int DIM, const int nPoints, 
 	const MY_DATA_TYPE *knownCoords, const int nGrids, 
-	const MY_DATA_TYPE *gridCoords, MY_DATA_TYPE *distances){ // distance (data1,grid1,...)
-	// (g1,d1), (g1,d2),...,(g2,d1),(g2,d2),...
+	const MY_DATA_TYPE *gridCoords, MY_DATA_TYPE *distances){
+
+	// d(g1,d1), d(g2,d1),...,d(g1,d2),d(g2,d2),...
+
 	for(int i=0;i<nGrids;++i){
 		for(int j=0;j< nPoints; ++j){
-			distances[ i*nPoints + j ] = 0;
+
+			distances[ i + j * nGrids ] = 0;
+
+
+
 			for(int d=0; d< DIM; d++){
-				distances[ i*nPoints + j ] += pow(( knownCoords[ j*DIM + d ] 
+				// change known coords and grid coords
+				distances[ i + j * nGrids ] += pow(( knownCoords[ j + d * nPoints ] 
 					- gridCoords[ i + nGrids * d ]) , 2);	
-				// gridCoords[ whichGridPt +  nGridPoints * whichDim ]
 			}
-			distances[ i*nPoints + j ] = pow(distances[ i*nPoints + j ], 0.5);
+
+			distances[ i + j * nGrids ] = pow(distances[ i + j * nGrids ], 0.5);
 		}
 	}
+
 };
 
 /*
@@ -129,7 +134,7 @@ void computeDistances(cl::CommandQueue & cmd, cl::Program &prog, const int DIM,
 	// cout<<"great8.1"<<endl;
 
 	// cl::Kernel kernel(*gpu.program, "count1");
-	cl::Kernel kernel( prog, "computeDistances_AOS");
+	cl::Kernel kernel( prog, "computeDistances_SOA");
 
 	// void computeDistances(int DIM, int nPoints,
 	// 	__global float *knownCoords, int nGrids,
@@ -170,19 +175,23 @@ void computeDistances(cl::CommandQueue & cmd, cl::Program &prog, const int DIM,
 };
 
 
+
 void computeWeights(const int nGrids, const int nPoints, 
 	MY_DATA_TYPE *distances, MY_DATA_TYPE *weightSum, const MY_DATA_TYPE p ){
 
 	// g1 = d(g1,d1)+d(g1,d2)+....
+
 	for( int i=0; i< nGrids; i++){
 		weightSum[i] = 0;
 		for(int j=0;j< nPoints; j++){
-			distances[ i*nPoints + j ] = pow(1/distances[ i*nPoints + j ], p);
-			weightSum[i] += distances[ i*nPoints + j ];
-			// weightSum[i] += pow(1/distances[ i*nPoints + j ], p);
 
+			distances[ i + j * nGrids ] = pow(1/distances[ i + j * nGrids ], p);
+			weightSum[i] += distances[ i + j * nGrids ];
+			// weightSum[i] += pow(1/distances[ i*nPoints + j ], p);
 		}
 	}
+
+
 };
 
 /*
@@ -192,7 +201,7 @@ void computeWeights(cl::CommandQueue &cmd, cl::Program &prog, const int nGrids,
 	const int nPoints, cl::Buffer &distances, cl::Buffer &weightSum, 
 	const MY_DATA_TYPE p){
 
-	cl::Kernel kernel( prog, "computeWeights_AOS");
+	cl::Kernel kernel( prog, "computeWeights_SOA");
 
 	// void computeWeights(const int nGrids, const int nPoints, 
 	// 	float *distances, float *weightSum, const float p ){
@@ -230,44 +239,38 @@ void computeWeights(cl::CommandQueue &cmd, cl::Program &prog, const int nGrids,
 
 };
 
+
 void computeInterpolation(const int nValues, const int nGrids, 
 	const int nPoints, const MY_DATA_TYPE *distances, 
 	const MY_DATA_TYPE *weightSum, const MY_DATA_TYPE *knownValues, 
 	MY_DATA_TYPE *gridValues){
 
-	// MY_DATA_TYPE *knownCoords = new MY_DATA_TYPE[DIM * nPoints];
-	// MY_DATA_TYPE *knownValues = new MY_DATA_TYPE[nPoints * nValues];
-	// MY_DATA_TYPE (*bounds)[2] = new MY_DATA_TYPE[DIM][2];					// size of DIMS * 2
-	// const int nGrids = (int)pow(nDivisions, DIM);				// # of grid points
-	// MY_DATA_TYPE *gridCoords = new MY_DATA_TYPE[(size_t) pow(nDivisions, DIM) * DIM]; // multiply DIM since the dimension coordinate
-	// MY_DATA_TYPE *distances = new MY_DATA_TYPE[nGrids * nPoints];
-	// MY_DATA_TYPE *weightSum = new MY_DATA_TYPE[nGrids]; // why is grid? not nPoints? 
-	// MY_DATA_TYPE *gridValues = new MY_DATA_TYPE[nGrids * nValues];
-
-
 	// MY_DATA_TYPE sum_w_attr = 0;
 	for(int i=0; i<nGrids; ++i){
 		bool distan_zero = false;
 		for(int v=0; v<nValues; ++v){
-			// g1_1,g1_2,g1_3,...,g2_1,g2_2,g2_3
-			gridValues[ i*nValues + v ] = 0;
+			// g1_1,g2_1,g3_1,..., g1_2,g2_2,g3_2,...
+			
+			gridValues[ i + v * nGrids  ] = 0;
 
 			for(int p=0; p<nPoints; ++p){
-				gridValues[ i*nValues + v ] +=  distances[ i*nPoints + p ] * knownValues[ p*nValues + v];
-				
-				if (isinf(distances[ i*nPoints + p ])){ //isinf
-					gridValues[ i*nValues + v ] = knownValues[ p*nValues + v];
+
+				gridValues[ i + v * nGrids ] +=  distances[ i + p * nGrids ] * knownValues[ p + v * nPoints];
+
+				if (isinf(distances[ i*nPoints + p ]) ){
+					gridValues[ i + v * nGrids ] = knownValues[ p + v * nPoints ];
 					distan_zero = true;
 					break;
 				}
+
+			}
+			
+			if(!distan_zero) {
+				gridValues[ i + v * nGrids ] /= weightSum[i];
 			}
 
-			if(!distan_zero) {
-				gridValues[ i*nValues + v ] /= weightSum[i];
-			}
 		}
 	}
-
 
 };
 
@@ -285,7 +288,7 @@ void computeInterpolation(cl::CommandQueue &cmd, cl::Program &prog,
 	// const __global float *weightSum, const __global float *knownValues, 
 	// __global float *gridValues){
 
-	cl::Kernel kernel( prog, "computeInterpolation_AOS");
+	cl::Kernel kernel( prog, "computeInterpolation_SOA");
 
 	kernel.setArg(0, (cl_int) nValues);
 	kernel.setArg(1, (cl_int) nGrids);
