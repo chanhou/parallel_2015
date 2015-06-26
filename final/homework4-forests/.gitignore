@@ -1,0 +1,17 @@
+# Editor Temp files
+*.swp
+*~
+*#
+
+# Compressed/Tarred files
+*.zip
+*.gz
+*.bz2
+*.tar
+
+# Others
+*.pdf
+*.exe
+*.out
+*.o
+*.d
